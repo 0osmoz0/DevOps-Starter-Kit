@@ -183,13 +183,20 @@ jobs:
           suspicious_files=()
 
           while IFS= read -r file; do
-            case "$file" in
-              *.example|*.template)
-                ;;
-              .env|.env.*|*.env|*.pem|*.key|*id_rsa*|*credentials*|*secret*|*secrets*)
-                suspicious_files+=("$file")
-                ;;
-            esac
+            if [[ "$file" == *.example || "$file" == *.template ]]; then
+              continue
+            fi
+
+            if [[ "$file" =~ (^|/)\.env($|\.) ]] ||
+              [[ "$file" == *.env ]] ||
+              [[ "$file" == *.pem ]] ||
+              [[ "$file" == *.key ]] ||
+              [[ "$file" == *id_rsa* ]] ||
+              [[ "$file" == *credentials* ]] ||
+              [[ "$file" == *secret* ]] ||
+              [[ "$file" == *secrets* ]]; then
+              suspicious_files+=("$file")
+            fi
           done < <(git ls-files)
 
           if [ "${#suspicious_files[@]}" -gt 0 ]; then
