@@ -1,0 +1,105 @@
+name: Docker Build Example
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "Dockerfile"
+      - "**/Dockerfile"
+      - "**/*.dockerfile"
+      - "**/docker-compose.yml"
+      - "**/compose.yml"
+      - ".github/workflows/**"
+  push:
+    branches:
+      - main
+    paths:
+      - "Dockerfile"
+      - "**/Dockerfile"
+      - "**/*.dockerfile"
+      - "**/docker-compose.yml"
+      - "**/compose.yml"
+      - ".github/workflows/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docker-build-example-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  IMAGE_NAME: example-app
+  IMAGE_TAG: pr-${{ github.event.pull_request.number || github.run_number }}
+
+jobs:
+  docker:
+    name: Docker build and smoke test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Validate Docker Compose file
+        run: |
+          docker compose -f examples/docker/docker-compose.yml config
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: examples/docker
+          file: examples/docker/Dockerfile
+          push: false
+          load: true
+          tags: ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+          build-args: |
+            BUILD_VERSION=${{ env.IMAGE_TAG }}
+            VCS_REF=${{ github.sha }}
+            BUILD_DATE=${{ github.event.repository.updated_at }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Run container
+        run: |
+          docker run --detach \
+            --name example-app \
+            --publish 3000:3000 \
+            --env APP_ENV=ci \
+            --env SERVICE_VERSION="${IMAGE_TAG}" \
+            "${IMAGE_NAME}:${IMAGE_TAG}"
+
+      - name: Wait for healthcheck
+        run: |
+          for attempt in {1..30}; do
+            if curl --fail --silent http://localhost:3000/health; then
+              echo "Service is healthy."
+              exit 0
+            fi
+
+            echo "Waiting for service healthcheck... attempt ${attempt}"
+            sleep 2
+          done
+
+          docker logs example-app
+          exit 1
+
+      - name: Show container logs
+        if: always()
+        run: |
+          docker logs example-app || true
+
+      - name: Stop container
+        if: always()
+        run: |
+          docker rm --force example-app || true
