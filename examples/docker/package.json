@@ -1,0 +1,15 @@
+{
+  "name": "docker-example-service",
+  "version": "1.0.0",
+  "description": "Minimal Node.js service used to demonstrate Docker best practices.",
+  "private": true,
+  "license": "MIT",
+  "type": "commonjs",
+  "scripts": {
+    "check": "node --check src/server.js",
+    "start": "node src/server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
