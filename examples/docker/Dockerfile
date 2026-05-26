@@ -8,15 +8,9 @@ ENV NODE_ENV=production
 
 RUN addgroup -S app && adduser -S app -G app
 
-FROM base AS dependencies
-
 COPY package*.json ./
-RUN npm ci --omit=dev
+RUN npm ci --omit=dev && npm cache clean --force
 
-FROM base AS runtime
-
-COPY --from=dependencies /app/node_modules ./node_modules
-COPY --chown=app:app package*.json ./
 COPY --chown=app:app src ./src
 
 USER app
