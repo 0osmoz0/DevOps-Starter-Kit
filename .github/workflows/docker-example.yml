@@ -1,0 +1,151 @@
+name: Docker Example
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "examples/docker/**"
+      - ".github/workflows/docker-example.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "examples/docker/**"
+      - ".github/workflows/docker-example.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docker-example-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  IMAGE_NAME: devops-starter-kit/docker-example
+  IMAGE_TAG: ci-${{ github.run_number }}
+  CONTAINER_NAME: docker-example-ci
+
+jobs:
+  docker-example:
+    name: Build and test Docker example
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Validate application syntax
+        working-directory: examples/docker
+        run: |
+          npm run check
+
+      - name: Validate Docker Compose configuration
+        run: |
+          docker compose -f examples/docker/docker-compose.yml config
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Resolve build metadata
+        id: metadata
+        run: |
+          build_date="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+          short_sha="${GITHUB_SHA:0:7}"
+
+          echo "build_date=${build_date}" >> "$GITHUB_OUTPUT"
+          echo "short_sha=${short_sha}" >> "$GITHUB_OUTPUT"
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: examples/docker
+          file: examples/docker/Dockerfile
+          push: false
+          load: true
+          tags: ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+          build-args: |
+            BUILD_VERSION=${{ env.IMAGE_TAG }}
+            VCS_REF=${{ steps.metadata.outputs.short_sha }}
+            BUILD_DATE=${{ steps.metadata.outputs.build_date }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Inspect Docker image
+        run: |
+          docker image inspect "${IMAGE_NAME}:${IMAGE_TAG}" \
+            --format 'Image ID: {{.Id}}'
+          docker image inspect "${IMAGE_NAME}:${IMAGE_TAG}" \
+            --format 'Created: {{.Created}}'
+
+      - name: Run container
+        run: |
+          docker run --detach \
+            --name "${CONTAINER_NAME}" \
+            --publish 3000:3000 \
+            --env APP_ENV=ci \
+            --env SERVICE_NAME=docker-example-service \
+            --env SERVICE_VERSION="${IMAGE_TAG}" \
+            --read-only \
+            --tmpfs /tmp \
+            --cap-drop ALL \
+            --security-opt no-new-privileges:true \
+            "${IMAGE_NAME}:${IMAGE_TAG}"
+
+      - name: Wait for health endpoint
+        run: |
+          for attempt in {1..30}; do
+            if curl --fail --silent http://localhost:3000/health; then
+              echo
+              echo "Health endpoint is ready."
+              exit 0
+            fi
+
+            echo "Waiting for /health... attempt ${attempt}"
+            sleep 2
+          done
+
+          echo "Container did not become healthy in time."
+          docker logs "${CONTAINER_NAME}"
+          exit 1
+
+      - name: Smoke test ready endpoint
+        run: |
+          curl --fail --silent http://localhost:3000/ready
+          echo
+
+      - name: Smoke test home endpoint
+        run: |
+          curl --fail --silent http://localhost:3000
+          echo
+
+      - name: Check Docker health status
+        run: |
+          status="$(docker inspect --format '{{.State.Health.Status}}' "${CONTAINER_NAME}")"
+          echo "Docker health status: ${status}"
+
+          if [ "$status" != "healthy" ] && [ "$status" != "starting" ]; then
+            docker inspect "${CONTAINER_NAME}"
+            exit 1
+          fi
+
+      - name: Show container logs
+        if: always()
+        run: |
+          docker logs "${CONTAINER_NAME}" || true
+
+      - name: Stop container
+        if: always()
+        run: |
+          docker rm --force "${CONTAINER_NAME}" || true
