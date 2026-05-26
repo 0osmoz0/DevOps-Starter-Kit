@@ -1,0 +1,213 @@
+name: Docs Quality
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "**/*.md"
+      - "**/*.yml"
+      - "**/*.yaml"
+      - ".github/**"
+  push:
+    branches:
+      - main
+    paths:
+      - "**/*.md"
+      - "**/*.yml"
+      - "**/*.yaml"
+      - ".github/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docs-quality-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  markdown-lint:
+    name: Markdown lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Lint Markdown files
+        run: |
+          cat > "$RUNNER_TEMP/markdownlint.json" <<'JSON'
+          {
+            "default": true,
+            "MD013": false,
+            "MD024": {
+              "siblings_only": true
+            },
+            "MD033": false
+          }
+          JSON
+
+          mapfile -t markdown_files < <(git ls-files "*.md")
+
+          if [ "${#markdown_files[@]}" -eq 0 ]; then
+            echo "No Markdown files found."
+            exit 0
+          fi
+
+          npx --yes markdownlint-cli --config "$RUNNER_TEMP/markdownlint.json" "${markdown_files[@]}"
+
+  markdown-links:
+    name: Markdown links
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Check local Markdown links
+        run: |
+          cat > "$RUNNER_TEMP/markdown-link-check.json" <<'JSON'
+          {
+            "ignorePatterns": [
+              {
+                "pattern": "^https?://"
+              },
+              {
+                "pattern": "^mailto:"
+              }
+            ],
+            "retryOn429": true,
+            "timeout": "10s"
+          }
+          JSON
+
+          mapfile -t markdown_files < <(git ls-files "*.md")
+
+          if [ "${#markdown_files[@]}" -eq 0 ]; then
+            echo "No Markdown files found."
+            exit 0
+          fi
+
+          for file in "${markdown_files[@]}"; do
+            echo "Checking links in $file"
+            npx --yes markdown-link-check --quiet --config "$RUNNER_TEMP/markdown-link-check.json" "$file"
+          done
+
+  yaml-lint:
+    name: YAML lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install yamllint
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install yamllint
+
+      - name: Lint YAML files
+        run: |
+          cat > "$RUNNER_TEMP/.yamllint.yml" <<'YAML'
+          extends: default
+
+          rules:
+            document-start: disable
+            line-length: disable
+            truthy: disable
+          YAML
+
+          mapfile -t yaml_files < <(git ls-files "*.yml" "*.yaml")
+
+          if [ "${#yaml_files[@]}" -eq 0 ]; then
+            echo "No YAML files found."
+            exit 0
+          fi
+
+          yamllint -c "$RUNNER_TEMP/.yamllint.yml" "${yaml_files[@]}"
+
+  github-actions-lint:
+    name: GitHub Actions lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install actionlint
+        run: |
+          cd "$RUNNER_TEMP"
+          bash <(curl -fsSL https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
+
+      - name: Lint GitHub Actions workflows
+        run: |
+          "$RUNNER_TEMP/actionlint" -color
+
+  secret-hygiene:
+    name: Secret hygiene
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect suspicious tracked files
+        run: |
+          suspicious_files=()
+
+          while IFS= read -r file; do
+            if [[ "$file" == *.example || "$file" == *.template ]]; then
+              continue
+            fi
+
+            if [[ "$file" =~ (^|/)\.env($|\.) ]] ||
+              [[ "$file" == *.env ]] ||
+              [[ "$file" == *.pem ]] ||
+              [[ "$file" == *.key ]] ||
+              [[ "$file" == *id_rsa* ]] ||
+              [[ "$file" == *credentials* ]] ||
+              [[ "$file" == *secret* ]] ||
+              [[ "$file" == *secrets* ]]; then
+              suspicious_files+=("$file")
+            fi
+          done < <(git ls-files)
+
+          if [ "${#suspicious_files[@]}" -gt 0 ]; then
+            echo "Suspicious tracked files detected:"
+            printf " - %s\n" "${suspicious_files[@]}"
+            exit 1
+          fi
+
+          echo "No suspicious tracked files detected."
+
+      - name: Scan repository with Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
