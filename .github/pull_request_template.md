@@ -1,6 +1,8 @@
+# Pull Request
+
 ## Résumé
 
-- 
+- À compléter
 
 ## Type de changement
 
@@ -26,7 +28,7 @@
 
 Décrire brièvement l'impact du changement :
 
-- 
+- À compléter
 
 ## Liens utiles
 
