@@ -6,6 +6,7 @@
   "license": "MIT",
   "type": "commonjs",
   "scripts": {
+    "check": "node --check src/server.js",
     "start": "node src/server.js"
   },
   "engines": {

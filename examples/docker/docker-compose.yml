@@ -3,14 +3,25 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        BUILD_VERSION: "local"
+        VCS_REF: "local"
+        BUILD_DATE: "local"
     image: devops-starter-kit/docker-example:local
     container_name: docker-example-app
-    environment:
-      APP_ENV: development
-      PORT: "3000"
+    init: true
+    env_file:
+      - .env.example
     ports:
       - "3000:3000"
     restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     healthcheck:
       test:
         - "CMD"
