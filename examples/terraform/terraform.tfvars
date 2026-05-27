@@ -1,0 +1,5 @@
+project_name = "devops-starter-kit"
+environment  = "dev"
+owner        = "platform"
+cost_center  = "education"
+output_root  = "generated"
