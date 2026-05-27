@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: docker-example
+  labels:
+    app.kubernetes.io/name: docker-example
+    app.kubernetes.io/part-of: devops-starter-kit
+    environment: dev

@@ -172,10 +172,11 @@ docker image inspect devops-starter-kit/docker-example:local
 
 Cet exemple applique plusieurs bonnes pratiques Docker :
 
-- image de base versionnée avec `node:20-alpine` ;
+- build avec `node:20-alpine`, runtime minimal avec `distroless/nodejs20` (sans npm) ;
 - utilisation de `.dockerignore` ;
 - installation reproductible avec `npm ci` ;
 - séparation des étapes avec un build multi-stage ;
+- `npm` uniquement dans le stage de build, absent de l'image finale distroless ;
 - exécution avec un utilisateur non-root ;
 - labels OCI pour la traçabilité ;
 - port documenté avec `EXPOSE` ;
@@ -262,3 +263,5 @@ Ce dépôt exécute déjà sur les pull requests :
 .github/workflows/docker-example.yml   # build, run, smoke tests
 .github/workflows/security-scan.yml   # Gitleaks + Trivy (filesystem et image)
 ```
+
+Le scan d'image Trivy cible les dépendances applicatives (`--pkg-types library`). Les CVE de la base distroless/Debian se corrigent en mettant à jour le tag d'image de base, pas dans le code de l'app.

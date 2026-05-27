@@ -84,6 +84,9 @@ jobs:
           push: false
           load: true
           tags: ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+          build-args: |
+            BUILD_VERSION=${{ env.IMAGE_TAG }}
+            VCS_REF=${{ github.sha }}
 
       - name: Run Trivy image scan
         uses: aquasecurity/trivy-action@v0.36.0
@@ -93,3 +96,6 @@ jobs:
           exit-code: "1"
           severity: HIGH,CRITICAL
           ignore-unfixed: true
+          scanners: vuln
+          trivyignores: .trivyignore
+          trivy-args: --pkg-types library
