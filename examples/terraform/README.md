@@ -123,18 +123,18 @@ Copier `terraform.tfvars.example` vers `terraform.tfvars` pour personnaliser les
 
 Le fichier `.terraform.lock.hcl` peut être versionné pour figer les versions exactes des providers en équipe.
 
-## Lien avec la CI (optionnel)
+## Lien avec la CI
 
-Un workflow GitHub Actions dédié pourra exécuter sur les pull requests :
+Le workflow actif `.github/workflows/terraform-example.yml` exécute sur les pull requests qui modifient `examples/terraform/` :
 
 ```bash
-terraform fmt -check
+terraform fmt -check -recursive
 terraform init -backend=false
 terraform validate
 terraform plan
 ```
 
-Voir `examples/github-actions/` pour des modèles de pipelines.
+Un modèle copiable est disponible dans `examples/github-actions/terraform.example.yml`.
 
 ## Aller plus loin
 
