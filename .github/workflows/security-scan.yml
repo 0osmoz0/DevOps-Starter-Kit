@@ -1,4 +1,4 @@
-name: Security Scan Example
+name: Security Scan
 
 on:
   pull_request:
@@ -16,7 +16,7 @@ permissions:
   security-events: write
 
 concurrency:
-  group: security-scan-example-${{ github.ref }}
+  group: security-scan-${{ github.ref }}
   cancel-in-progress: true
 
 defaults:
@@ -24,7 +24,7 @@ defaults:
     shell: bash
 
 env:
-  IMAGE_NAME: security-example-app
+  IMAGE_NAME: devops-starter-kit/docker-example
   IMAGE_TAG: scan-${{ github.run_number }}
 
 jobs:
@@ -76,7 +76,7 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build local image
+      - name: Build Docker example image
         uses: docker/build-push-action@v6
         with:
           context: examples/docker

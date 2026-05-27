@@ -251,6 +251,7 @@ Les exemples suivants ont déjà un workflow actif sous `.github/workflows/` :
 docs-quality.yml
 docker-example.yml
 terraform-example.yml
+security-scan.yml
 ```
 
 Les fichiers `*.example.yml` de ce dossier restent des modèles à copier et adapter dans d'autres projets.
