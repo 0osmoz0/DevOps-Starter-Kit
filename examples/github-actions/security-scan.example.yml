@@ -88,14 +88,19 @@ jobs:
             BUILD_VERSION=${{ env.IMAGE_TAG }}
             VCS_REF=${{ github.sha }}
 
+      - name: Setup Trivy
+        uses: aquasecurity/setup-trivy@v0.2.6
+
       - name: Run Trivy image scan
-        uses: aquasecurity/trivy-action@v0.36.0
-        with:
-          image-ref: ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
-          format: table
-          exit-code: "1"
-          severity: HIGH,CRITICAL
-          ignore-unfixed: true
-          scanners: vuln
-          trivyignores: .trivyignore
-          trivy-args: --pkg-types library
+        env:
+          TRIVY_DISABLE_VEX_NOTICE: "true"
+        run: |
+          trivy image \
+            --scanners vuln \
+            --pkg-types library \
+            --severity HIGH,CRITICAL \
+            --ignore-unfixed \
+            --ignorefile .trivyignore \
+            --format table \
+            --exit-code 1 \
+            "${IMAGE_NAME}:${IMAGE_TAG}"
