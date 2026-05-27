@@ -254,12 +254,11 @@ Exemple :
 
 Cette pratique facilite la collecte par Docker, Kubernetes ou une plateforme de monitoring.
 
-## Prochaine amélioration possible
+## Workflows GitHub Actions actifs
 
-Une prochaine étape pourrait ajouter un workflow GitHub Actions dédié :
+Ce dépôt exécute déjà sur les pull requests :
 
 ```text
-.github/workflows/docker-example.yml
+.github/workflows/docker-example.yml   # build, run, smoke tests
+.github/workflows/security-scan.yml   # Gitleaks + Trivy (filesystem et image)
 ```
-
-Ce workflow pourrait construire l'image à chaque pull request et lancer un scan de sécurité.
