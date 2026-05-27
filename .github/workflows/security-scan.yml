@@ -98,3 +98,5 @@ jobs:
           ignore-unfixed: true
           scanners: vuln
           trivyignores: .trivyignore
+          # Application dependencies only; base OS (distroless/debian) is updated via image tags.
+          trivy-args: --pkg-types library

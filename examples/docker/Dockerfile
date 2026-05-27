@@ -9,7 +9,7 @@ RUN npm ci --omit=dev \
   && mkdir -p node_modules \
   && npm cache clean --force
 
-FROM gcr.io/distroless/nodejs20-debian12 AS runtime
+FROM gcr.io/distroless/nodejs20-debian12:nonroot AS runtime
 
 ARG BUILD_VERSION=local
 ARG VCS_REF=unknown

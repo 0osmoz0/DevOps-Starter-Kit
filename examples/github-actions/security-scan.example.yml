@@ -98,3 +98,4 @@ jobs:
           ignore-unfixed: true
           scanners: vuln
           trivyignores: .trivyignore
+          trivy-args: --pkg-types library
