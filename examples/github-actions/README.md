@@ -19,6 +19,7 @@ examples/github-actions/
 ├── README.md
 ├── docs-quality.example.yml
 ├── docker-build.example.yml
+├── terraform.example.yml
 ├── security-scan.example.yml
 └── release.example.yml
 ```
@@ -58,6 +59,23 @@ Objectif :
 
 ```text
 Vérifier qu'une image Docker se construit et démarre correctement avant merge.
+```
+
+## `terraform.example.yml`
+
+Ce workflow montre comment valider un exemple Terraform sans `apply` en CI.
+
+Il couvre :
+
+- vérification du format avec `terraform fmt -check` ;
+- initialisation sans backend distant (`terraform init -backend=false`) ;
+- validation de la configuration ;
+- plan en lecture seule.
+
+Objectif :
+
+```text
+Bloquer une pull request si la configuration Terraform est invalide ou mal formatée.
 ```
 
 ## `security-scan.example.yml`
@@ -200,6 +218,12 @@ docker-build.example.yml
 security-scan.example.yml
 ```
 
+Pour un exemple Infrastructure as Code :
+
+```text
+terraform.example.yml
+```
+
 Pour une publication versionnée :
 
 ```text
@@ -219,12 +243,14 @@ Avant de copier un exemple dans `.github/workflows/` :
 - [ ] Le workflow est relu.
 - [ ] Le workflow est testé dans une pull request.
 
-## Prochaine étape recommandée
+## Workflows actifs dans ce dépôt
 
-Après ces exemples, la prochaine étape logique est de créer un workflow actif pour l'exemple Docker :
+Les exemples suivants ont déjà un workflow actif sous `.github/workflows/` :
 
 ```text
-.github/workflows/docker-example.yml
+docs-quality.yml
+docker-example.yml
+terraform-example.yml
 ```
 
-Ce workflow pourra être réellement exécuté sur les pull requests du dépôt.
+Les fichiers `*.example.yml` de ce dossier restent des modèles à copier et adapter dans d'autres projets.
