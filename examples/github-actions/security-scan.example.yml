@@ -93,3 +93,4 @@ jobs:
           exit-code: "1"
           severity: HIGH,CRITICAL
           ignore-unfixed: true
+          trivyignores: .trivyignore

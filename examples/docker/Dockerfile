@@ -34,6 +34,11 @@ COPY --chown=app:app package*.json ./
 
 COPY --chown=app:app src ./src
 
+# npm is only needed at build time; remove CLI from the runtime image.
+USER root
+RUN rm -rf /usr/local/lib/node_modules/npm \
+  && rm -f /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack
+
 USER app
 
 EXPOSE 3000

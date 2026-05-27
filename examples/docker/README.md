@@ -176,6 +176,7 @@ Cet exemple applique plusieurs bonnes pratiques Docker :
 - utilisation de `.dockerignore` ;
 - installation reproductible avec `npm ci` ;
 - séparation des étapes avec un build multi-stage ;
+- `npm` utilisé uniquement au build, retiré de l'image runtime ;
 - exécution avec un utilisateur non-root ;
 - labels OCI pour la traçabilité ;
 - port documenté avec `EXPOSE` ;
